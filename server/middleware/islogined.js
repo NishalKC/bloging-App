@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken")
 
 module.exports = (req, res, next) => {
     try {
-        let token = req.cookies.Token
+        let token = req.cookies.token
         if(!token || token== ""){
             return res.status(401).json({
                 message: "You must login first"

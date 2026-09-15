@@ -9,7 +9,6 @@ const errorMiddleware = require("./middleware/errorMiddleware")
 
 app.use(express.json())
 app.use(express.urlencoded({extended : true}))
-app.use(cookieParser())
 app.use("/uploads", express.static(path.join(__dirname, "uploads")))
 app.use(
   cors({
@@ -20,6 +19,7 @@ app.use(
     credentials: true,
   })
 );
+app.use(cookieParser())
 app.use('/user', userRoute)
 app.use('/blog', blogRoute)
 

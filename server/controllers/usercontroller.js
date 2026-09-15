@@ -19,7 +19,7 @@ module.exports.registerUser= async (req, res ) => {
             password: Hashedpassword
         })
         let token = jwt.sign({email: user.email ,userID: user._id }, process.env.JWT_SECRET)
-           res.cookie("Token", token, {
+           res.cookie("token", token, {
               httpOnly: true,
               secure: process.env.NODE_ENV ==="production",
               sameSite:"none"});
@@ -58,7 +58,7 @@ try {
         if (err) return res.json({message: err.message})
         if (result){
             let token = jwt.sign({email: user.email,userID: user._id }, process.env.JWT_SECRET)
-            res.cookie("Token", token, {
+            res.cookie("token", token, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
                 sameSite:"none"
