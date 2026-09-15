@@ -91,7 +91,7 @@ const Blog = ({ blog, showActions = false, onDelete }) => {
 
           <div>
             <p className="text-sm text-zinc-300">
-              By {blog.author?.username || "Unknown"}
+              By {blog.author?.name || "Unknown"}
             </p>
 
             <p className="text-xs text-zinc-500 mt-1">
