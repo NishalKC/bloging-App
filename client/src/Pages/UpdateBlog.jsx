@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import api from "../services/Api";
 
-const CreateBlog = () => {
+const UpdateBlog = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -13,11 +14,49 @@ const CreateBlog = () => {
     coverImage: null,
   });
 
+  const [currentImage, setCurrentImage] = useState("");
   const [preview, setPreview] = useState(null);
+
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
 
+  // Get existing blog
+  const getBlog = async () => {
+    try {
+      const response = await api.get(`/blog/${id}`);
+
+      const blog = response.data;
+
+      setFormData({
+        title: blog.title || "",
+        content: blog.content || "",
+        category: blog.category || "",
+        tags: blog.tags?.join(", ") || "",
+        coverImage: null,
+      });
+
+      setCurrentImage(blog.coverImage || "");
+    } catch (error) {
+      console.log(error);
+
+      setError(
+        error.response?.data?.message ||
+        "Failed to load blog"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    getBlog();
+  }, [id]);
+
+  // Input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -29,18 +68,17 @@ const CreateBlog = () => {
     setError("");
   };
 
+  // Image change
   const handleImageChange = (e) => {
     const file = e.target.files[0];
 
     if (!file) return;
 
-    // Check image type
     if (!file.type.startsWith("image/")) {
-      setError("Please select a valid image file");
+      setError("Please select a valid image");
       return;
     }
 
-    // Check image size
     if (file.size > 5 * 1024 * 1024) {
       setError("Image must be smaller than 5MB");
       return;
@@ -55,7 +93,7 @@ const CreateBlog = () => {
     setError("");
   };
 
-  const removeImage = () => {
+  const removeNewImage = () => {
     setFormData((prev) => ({
       ...prev,
       coverImage: null,
@@ -64,13 +102,13 @@ const CreateBlog = () => {
     setPreview(null);
   };
 
+  // Submit update
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     setError("");
     setSuccess("");
 
-    // Validation
     if (!formData.title.trim()) {
       return setError("Blog title is required");
     }
@@ -92,7 +130,7 @@ const CreateBlog = () => {
     }
 
     try {
-      setLoading(true);
+      setUpdating(true);
 
       const data = new FormData();
 
@@ -105,36 +143,47 @@ const CreateBlog = () => {
         data.append("coverImage", formData.coverImage);
       }
 
-      await api.post("/blog/create", data);
+      await api.put(`/blog/update/${id}`, data);
 
-      setSuccess("Blog created successfully!");
+      setSuccess("Blog updated successfully!");
 
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate(`/blog/${id}`);
       }, 1200);
-
     } catch (error) {
       console.log(error);
 
       setError(
         error.response?.data?.message ||
-        "Failed to create blog"
+        "Failed to update blog"
       );
     } finally {
-      setLoading(false);
+      setUpdating(false);
     }
   };
+
+  // Loading
+  if (loading) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <p className="text-xl text-zinc-400">
+          Loading blog...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-5 py-10">
 
+      {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-2">
-          Create a Blog
+          Edit Blog
         </h1>
 
         <p className="text-zinc-400">
-          Share your ideas with the Blogify community.
+          Update your blog and keep your content fresh.
         </p>
       </div>
 
@@ -168,7 +217,6 @@ const CreateBlog = () => {
             name="title"
             value={formData.title}
             onChange={handleChange}
-            placeholder="Enter your blog title"
             className="w-full bg-zinc-900 border border-zinc-700 px-4 py-3 rounded-lg outline-none focus:border-blue-500 transition"
           />
 
@@ -188,7 +236,6 @@ const CreateBlog = () => {
             name="category"
             value={formData.category}
             onChange={handleChange}
-            placeholder="Technology, Programming, AI..."
             className="w-full bg-zinc-900 border border-zinc-700 px-4 py-3 rounded-lg outline-none focus:border-blue-500 transition"
           />
         </div>
@@ -223,7 +270,6 @@ const CreateBlog = () => {
             name="content"
             value={formData.content}
             onChange={handleChange}
-            placeholder="Write your blog..."
             rows="12"
             className="w-full bg-zinc-900 border border-zinc-700 px-4 py-3 rounded-lg outline-none focus:border-blue-500 transition resize-y"
           />
@@ -233,10 +279,25 @@ const CreateBlog = () => {
           </p>
         </div>
 
-        {/* Image */}
+        {/* Existing Image */}
+        {currentImage && !preview && (
+          <div className="mb-6">
+            <p className="text-sm text-zinc-300 mb-2">
+              Current Cover Image
+            </p>
+
+            <img
+              src={`${import.meta.env.VITE_API_URL}/${currentImage}`}
+              alt="Current cover"
+              className="w-full max-h-80 object-cover rounded-xl"
+            />
+          </div>
+        )}
+
+        {/* New Image */}
         <div className="mb-8">
           <label className="block text-sm text-zinc-300 mb-2">
-            Cover Image
+            Change Cover Image
           </label>
 
           <input
@@ -247,41 +308,53 @@ const CreateBlog = () => {
           />
 
           <p className="text-xs text-zinc-500 mt-2">
-            Maximum size: 5MB
+            Leave empty to keep the current image. Maximum size: 5MB.
           </p>
 
-          {/* Preview */}
+          {/* New Image Preview */}
           {preview && (
             <div className="mt-5 relative">
               <img
                 src={preview}
-                alt="Preview"
+                alt="New cover preview"
                 className="w-full max-h-80 object-cover rounded-xl"
               />
 
               <button
                 type="button"
-                onClick={removeImage}
+                onClick={removeNewImage}
                 className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 px-3 py-2 rounded-lg text-sm"
               >
-                Remove
+                Cancel New Image
               </button>
             </div>
           )}
         </div>
 
-        {/* Submit */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-lg font-medium transition"
-        >
-          {loading ? "Publishing..." : "Publish Blog"}
-        </button>
+        {/* Buttons */}
+        <div className="flex flex-col sm:flex-row gap-3">
+
+          <button
+            type="submit"
+            disabled={updating}
+            className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-lg font-medium transition"
+          >
+            {updating ? "Updating..." : "Update Blog"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate(`/blog/${id}`)}
+            className="sm:w-32 bg-zinc-700 hover:bg-zinc-600 py-3 rounded-lg transition"
+          >
+            Cancel
+          </button>
+
+        </div>
 
       </form>
     </div>
   );
 };
 
-export default CreateBlog;
+export default UpdateBlog;
