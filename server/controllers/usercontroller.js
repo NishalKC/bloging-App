@@ -19,10 +19,14 @@ module.exports.registerUser= async (req, res ) => {
             password: Hashedpassword
         })
         let token = jwt.sign({email: user.email ,userID: user._id }, process.env.JWT_SECRET)
-            res.cookie("Token", token, {
-                httpOnly: true,
-                secure: false
-            })
+           res.cookie("token", token, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === "production",
+              sameSite:
+                process.env.NODE_ENV === "production"
+                  ? "none"
+                  : "lax",
+            });
          res.status(201).json({
             message: "User registered successfully",
             user: {
@@ -58,10 +62,14 @@ try {
         if (err) return res.json({message: err.message})
         if (result){
             let token = jwt.sign({email: user.email,userID: user._id }, process.env.JWT_SECRET)
-            res.cookie("Token", token, {
+            res.cookie("token", token, {
                 httpOnly: true,
-                secure: false
-            })
+                secure: process.env.NODE_ENV === "production",
+                sameSite:
+                  process.env.NODE_ENV === "production"
+                    ? "none"
+                    : "lax",
+                });
             return res.status(200).json({
                 message: "login successfully",
                 user: user
