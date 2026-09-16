@@ -54,6 +54,7 @@ const UpdateBlog = () => {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     getBlog();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Input changes
