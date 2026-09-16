@@ -19,6 +19,10 @@ const blogSchema = mongoose.Schema({
         type: String,
         defult: ""
     },
+    coverImageId: {
+        type: String,
+        default: "",
+    },
     tags: {
         type: [String],
         defult: []

@@ -1,6 +1,8 @@
 const { default: mongoose } = require("mongoose");
 const blogModel = require("../models/Blog")
 const userModel = require("../models/userModel")
+const cloudinary = require("../config/cloudinary");
+const streamifier = require("streamifier");
 
 module.exports.createBlog = async (req, res) => {
     try {
@@ -14,7 +16,26 @@ module.exports.createBlog = async (req, res) => {
         }
         let user = await userModel.findOne({email: req.user.email})
 
-        let imagePath = `uploads/${req.file.filename}`
+        let imageUrl = "";
+        let imageID = "";
+
+        if (req.file) {
+          const result = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+              {
+                folder: "blogify",
+              },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+              }
+            );
+            streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+          });
+      
+          imageUrl = result.secure_url;
+          imageID = result.public_id
+        }
         
         const blog = await blogModel.create({
             title,
@@ -24,7 +45,8 @@ module.exports.createBlog = async (req, res) => {
                 ? tags.split(",").map((tag) => tag.trim()).filter(Boolean)
                 : [],
             author: req.user.userID,
-            coverImage: imagePath
+            coverImage: imagePath,
+            coverImageId: imageID
         });
         user.Blogs.push(blog._id)
         await user.save()
@@ -80,49 +102,74 @@ module.exports.getblogbyId= async(req,  res) => {
     }
 }
 
-module.exports.Updateblog = async(req, res ) => {
-    try {
-        let {id}=  req.params
-        let{title, content, category, tags}= req.body
+module.exports.Updateblog = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content, category, tags } = req.body;
 
-        if(!mongoose.Types.ObjectId.isValid(id)){
-            return res.status(400).json({
-                message: "Unvalid blog Id"
-            })
-        }
-
-        let blog = await blogModel.findOne({_id: id})
-
-        if(!blog)return res.status(404).json({
-            message: "Blog not found"
-        })
-        
-        if(blog.author.toString()!= req.user.userID){
-            return res.status(403).json({
-                message: "You are not allowed to do"
-            })
-        }
-        blog.title= title
-        blog.content= content
-        blog.category= category
-        blog.tags= tags
-
-        if(req.file){
-            blog.coverImage= `uploads/${req.file.filename}`
-        }
-        await blog.save()
-
-        return res.status(200).json({
-            message: "blog updated successfully",
-            blog
-        })
-
-    } catch (error) {
-        return res.status(500).json({
-            message: error.message
-        })
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid blog ID",
+      });
     }
-}
+
+    const blog = await blogModel.findById(id);
+
+    if (!blog) {
+      return res.status(404).json({
+        message: "Blog not found",
+      });
+    }
+
+    // Only the author can update
+    if (blog.author.toString() !== req.user.userID) {
+      return res.status(403).json({
+        message: "You are not allowed to update this blog",
+      });
+    }
+
+    // Update text fields
+    blog.title = title;
+    blog.content = content;
+    blog.category = category;
+    blog.tags = tags ? tags.split(",") : [];
+
+    // Update cover image if a new image is uploaded
+    if (req.file) {
+      // Delete old image from Cloudinary
+      if (blog.coverImageId) {
+        await cloudinary.uploader.destroy(blog.coverImageId);
+      }
+
+      // Upload new image
+      const result = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { folder: "blogify" },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+
+        streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+      });
+      blog.coverImage = result.secure_url;
+      blog.coverImageId = result.public_id;
+    }
+
+    await blog.save();
+
+    return res.status(200).json({
+      message: "Blog updated successfully",
+      blog,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
 
 module.exports.Deleteblog= async (req, res) => {
     try{
