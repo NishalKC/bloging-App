@@ -45,7 +45,7 @@ module.exports.createBlog = async (req, res) => {
                 ? tags.split(",").map((tag) => tag.trim()).filter(Boolean)
                 : [],
             author: req.user.userID,
-            coverImage: imagePath,
+            coverImage: imageUrl,
             coverImageId: imageID
         });
         user.Blogs.push(blog._id)
