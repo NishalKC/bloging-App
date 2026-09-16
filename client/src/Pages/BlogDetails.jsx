@@ -102,7 +102,7 @@ const BlogDetails = () => {
         {/* Cover Image */}
         {blog.coverImage && (
           <img
-            src={`${import.meta.env.VITE_API_URL}/${blog.coverImage}`}
+            src={blog.coverImage}
             alt={blog.title}
             className="w-full max-h-125 object-cover rounded-2xl mb-10"
           />

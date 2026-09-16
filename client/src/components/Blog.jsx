@@ -54,7 +54,7 @@ const Blog = ({ blog, showActions = false, onDelete }) => {
       {blog.coverImage ? (
         <Link to={`/blog/${blog._id}`}>
           <img
-            src={`${import.meta.env.VITE_API_URL}/${blog.coverImage}`}
+            src={blog.coverImage}
             alt={blog.title}
             className="w-full h-52 object-cover hover:scale-105 transition duration-500"
           />

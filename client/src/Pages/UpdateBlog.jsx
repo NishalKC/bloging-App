@@ -287,7 +287,7 @@ const UpdateBlog = () => {
             </p>
 
             <img
-              src={`${import.meta.env.VITE_API_URL}/${currentImage}`}
+              src={currentImage}
               alt="Current cover"
               className="w-full max-h-80 object-cover rounded-xl"
             />
