@@ -80,8 +80,6 @@ const Login = ({ setIslogin }) => {
             {error}
           </div>
         )}
-
-        {/* Email */}
         <div className="mb-5">
           <label className="block text-sm text-zinc-300 mb-2">
             Email
